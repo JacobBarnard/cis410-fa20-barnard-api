@@ -12,7 +12,7 @@ async function executeQuery(aQuery){
     var connection = await sql.connect(config)
     var result = await connection.query(aQuery)
 
-    return (result.recordset)
+    return result.recordset
 }
 
 
