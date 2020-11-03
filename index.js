@@ -1,10 +1,73 @@
 const express = require('express')
 const db = require('./dbConnectExec.js')
 const app = express();
+const jwt = require('jsonwebtoken')
+const config = require('./config.js')
+const bcrypt = require('bcryptjs')
 app.use(express.json())
 
 app.get("/hi", (req, res)=> {
     res.send("hello world")
+})
+
+app.post("/contacts/login", async (req, res) => {
+    // console.log(req.body)
+
+    var email = req.body.email;
+    var password = req.body.password;
+
+    if(!email || !password){
+        return res.status(400).send('bad request')
+    }
+
+    var query = `Select * from contact where email = '${email}'`
+
+    let result;
+    try{
+        result = await db.executeQuery(query);
+    }
+    catch(myError){
+        console.log("error in contact login", myError)
+        return res.status(500).send();
+    }
+
+    // console.log(result)
+
+    if(!result[0]){
+        return res.status(400).send('Invalid credentials')
+    }
+
+    let user = result[0];
+
+    if(!bcrypt.compareSync(password, user.Password)){
+        return res.status(400).send('Invalid credentials')
+    }
+
+    let token = jwt.sign({pk: user.ContactPK}, config.JWT, {expiresIn: '60 minutes'})
+
+    // console.log(token)
+
+    let setTokenQuery = `update contact set token = '${token}' where ContactPK = ${user.ContactPK}`
+
+    try{
+        await db.executeQuery(setTokenQuery)
+
+        res.status(200).send({
+            token: token,
+            user: {
+                NameFirst: user.NameFirst,
+                NameLast: user.NameLast,
+                Email: user.Email,
+                ContactPK: user.ContactPK
+            }
+        })
+    }
+    catch(myError){
+        console.log("error setting user token ", myError);
+        res.status(500).send()
+    }
+
+
 })
 
 app.post("/contacts", async (req, res) => {
