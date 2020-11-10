@@ -5,11 +5,46 @@ const jwt = require('jsonwebtoken')
 const config = require('./config.js')
 const bcrypt = require('bcryptjs')
 app.use(express.json())
+const auth = require('./middleware/authenticate');
+const { request } = require('express');
+
 
 app.get("/hi", (req, res)=> {
     res.send("hello world")
 })
 
+
+
+app.post("/reviews", auth, async (req, res) => {
+
+    try{
+        var movieFK = req.body.movieFK;
+        var summary = req.body.summary;
+        var rating = req.body.rating;
+    
+        if(!movieFK || !summary || !rating){
+            res.status(400).send("bad request")
+        }
+        summary = summary.replace("'", "''")
+
+        let insertQuery = `Insert into Review(Summary, Rating, MovieFK, ContactFK) 
+        output inserted.ReviewPK, inserted.Summary, inserted.Rating, inserted.MovieFK
+        values (${summary}, ${rating}, ${movieFK}, ${req.ContactPK})`
+
+        let insertedReview = await db.executeQuery(insertQuery)
+
+        res.status(200).send(insertedReview[0])
+    }
+    catch(error){
+        console.log("error in POST /review", error);
+        res.status(500).send()
+    }
+   
+})
+
+app.get('/contacts/me', auth, (req, res) => {
+    res.send(req.contact)
+})
 app.post("/contacts/login", async (req, res) => {
     // console.log(req.body)
 
