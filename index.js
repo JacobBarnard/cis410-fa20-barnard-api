@@ -6,14 +6,30 @@ const config = require('./config.js')
 const bcrypt = require('bcryptjs')
 app.use(express.json())
 const auth = require('./middleware/authenticate');
-const { request } = require('express');
+const { request, query } = require('express');
 
 
 app.get("/hi", (req, res)=> {
     res.send("hello world")
 })
 
+app.post('/contacts/logout', auth, (req, res) => {
+    var query = `Update Contact set Token = NULL where ContactPK = ${req.contact.ContactPK}`
 
+    db.executeQuery(query)
+    .then(() => {res.status(200).send()})
+    .catch((error)=>{
+        console.log("error in POST /contacts/logout", error)
+        res.status(500).send()
+    })
+})
+
+// app.get('/reviews/me',  auth, async (req, res) => {
+//     let contactPK = req.contact.ContactPK;
+//     //run query to get all records of transaction from a user
+// })
+
+app.get("/", (req, res) => {res.send("Hello World")})
 
 app.post("/reviews", auth, async (req, res) => {
 
@@ -45,6 +61,7 @@ app.post("/reviews", auth, async (req, res) => {
 app.get('/contacts/me', auth, (req, res) => {
     res.send(req.contact)
 })
+
 app.post("/contacts/login", async (req, res) => {
     // console.log(req.body)
 
